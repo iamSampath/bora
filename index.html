@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auction vs. Retail Advisor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chat-bubble {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .result-card {
+            animation: slideInUp 0.7s ease-out;
+        }
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .decision-card {
+            animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) 0.5s;
+            animation-fill-mode: backwards;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div id="app" class="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-8">
+        
+        <div id="welcomeScreen">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold text-gray-800">Auction vs. Retail Advisor</h1>
+                <p class="mt-2 text-gray-600">Should you bid or buy new? Let's find out.</p>
+                <p class="mt-4 text-sm text-gray-500">I'll ask you a few questions to calculate your potential savings and give you a clear recommendation based on your rules.</p>
+                <button id="startButton" class="mt-6 bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Start Analysis
+                </button>
+            </div>
+        </div>
+
+        <div id="qaScreen" class="hidden">
+            <div id="chat-container" class="space-y-4">
+                <!-- Chat bubbles will be appended here -->
+            </div>
+            <div id="input-container" class="mt-6 hidden">
+                <div id="text-input-group">
+                    <div class="flex items-center border-2 border-gray-200 rounded-lg focus-within:border-blue-500 transition-colors">
+                        <span id="prefix" class="pl-3 text-gray-500"></span>
+                        <input type="number" id="userInput" class="w-full p-3 border-none focus:ring-0" placeholder="Enter value...">
+                    </div>
+                     <p id="input-error" class="text-red-500 text-sm mt-1 hidden">Please enter a valid number.</p>
+                </div>
+                <div id="radio-input-group" class="hidden">
+                    <!-- Radio buttons will be here -->
+                </div>
+                <button id="nextButton" class="w-full mt-4 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Next
+                </button>
+            </div>
+        </div>
+
+        <div id="resultScreen" class="hidden">
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Analysis Complete</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Retail Card -->
+                <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 result-card">
+                    <h3 class="text-xl font-semibold text-gray-700">Retail Purchase</h3>
+                    <div class="mt-4 space-y-2 text-gray-600">
+                        <div class="flex justify-between"><span>Retail Price:</span> <span id="resRetailPrice" class="font-medium text-gray-800"></span></div>
+                        <div class="flex justify-between"><span>Sales Tax (<span id="resRetailTaxRate"></span>%):</span> <span id="resRetailTax" class="font-medium text-gray-800"></span></div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="flex justify-between text-lg">
+                        <span class="font-semibold text-gray-800">Total Retail Cost:</span>
+                        <span id="resRetailTotal" class="font-bold text-blue-600"></span>
+                    </div>
+                </div>
+                <!-- Auction Card -->
+                <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 result-card" style="animation-delay: 0.1s;">
+                    <h3 class="text-xl font-semibold text-gray-700">Auction Purchase</h3>
+                    <div class="mt-4 space-y-2 text-gray-600">
+                        <div class="flex justify-between"><span>Hammer Price:</span> <span id="resAuctionHammer" class="font-medium text-gray-800"></span></div>
+                        <div class="flex justify-between"><span>Buyer's Premium (<span id="resAuctionPremiumRate"></span>%):</span> <span id="resAuctionPremium" class="font-medium text-gray-800"></span></div>
+                        <div class="flex justify-between pt-2 border-t mt-2"><span>Taxable Amount:</span> <span id="resAuctionTaxable" class="font-medium text-gray-800"></span></div>
+                        <div class="flex justify-between"><span>Sales Tax (<span id="resAuctionTaxRate"></span>%):</span> <span id="resAuctionTax" class="font-medium text-gray-800"></span></div>
+                        <div class="flex justify-between"><span>Pickup/Shipping:</span> <span id="resAuctionPickup" class="font-medium text-gray-800"></span></div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="flex justify-between text-lg">
+                        <span class="font-semibold text-gray-800">Total Auction Cost:</span>
+                        <span id="resAuctionTotal" class="font-bold text-green-600"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Decision Card -->
+            <div id="decisionCard" class="mt-6 p-6 rounded-xl decision-card">
+                <h3 id="decisionTitle" class="text-2xl font-bold text-center text-white"></h3>
+                <p id="decisionReason" class="text-center mt-2 text-white opacity-90"></p>
+            </div>
+
+            <div class="text-center mt-6">
+                 <button id="resetButton" class="bg-gray-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-gray-700 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                    Start Over
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const nextButton = document.getElementById('nextButton');
+        const resetButton = document.getElementById('resetButton');
+        
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const qaScreen = document.getElementById('qaScreen');
+        const resultScreen = document.getElementById('resultScreen');
+
+        const chatContainer = document.getElementById('chat-container');
+        const inputContainer = document.getElementById('input-container');
+        const textInputGroup = document.getElementById('text-input-group');
+        const radioInputGroup = document.getElementById('radio-input-group');
+        const userInput = document.getElementById('userInput');
+        const prefixSpan = document.getElementById('prefix');
+        const inputError = document.getElementById('input-error');
+
+        const questions = [
+            { id: 'condition', text: "First, what's the condition of the item?", type: 'radio', options: ['Brand New', 'Open Box', 'Pre-Owned'], prefix: '' },
+            { id: 'retailPrice', text: 'What is the retail price of the item?', type: 'number', prefix: '$' },
+            { id: 'taxRate', text: 'And the local sales tax rate?', type: 'number', prefix: '%' },
+            { id: 'hammerPrice', text: 'Great. What is the auction hammer price (your winning bid)?', type: 'number', prefix: '$' },
+            { id: 'buyersPremium', text: "What is the auction house's buyer's premium?", type: 'number', prefix: '%' },
+            { id: 'pickupCost', text: 'Finally, what is the estimated cost for pickup or shipping?', type: 'number', prefix: '$' },
+        ];
+
+        let currentQuestionIndex = 0;
+        let answers = {};
+        const thresholds = {
+            'Brand New': 20,
+            'Open Box': 30,
+            'Pre-Owned': 40,
+        };
+
+        const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+
+        function start() {
+            welcomeScreen.classList.add('hidden');
+            qaScreen.classList.remove('hidden');
+            currentQuestionIndex = 0;
+            answers = {};
+            chatContainer.innerHTML = '';
+            askQuestion();
+        }
+        
+        function askQuestion() {
+            inputError.classList.add('hidden');
+            const question = questions[currentQuestionIndex];
+            
+            const questionBubble = document.createElement('div');
+            questionBubble.className = 'chat-bubble bg-gray-200 text-gray-800 p-3 rounded-lg rounded-bl-none max-w-md';
+            questionBubble.textContent = question.text;
+            chatContainer.appendChild(questionBubble);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            userInput.value = '';
+            radioInputGroup.innerHTML = '';
+
+            if (question.type === 'number') {
+                textInputGroup.classList.remove('hidden');
+                radioInputGroup.classList.add('hidden');
+                prefixSpan.textContent = question.prefix;
+                userInput.focus();
+            } else if (question.type === 'radio') {
+                textInputGroup.classList.add('hidden');
+                radioInputGroup.classList.remove('hidden');
+                question.options.forEach((option, index) => {
+                    const wrapper = document.createElement('div');
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = 'condition';
+                    radio.id = `option-${index}`;
+                    radio.value = option;
+                    radio.className = 'hidden peer';
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `option-${index}`;
+                    label.textContent = option;
+                    label.className = 'block w-full text-center p-3 border-2 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition-colors';
+                    
+                    wrapper.appendChild(radio);
+                    wrapper.appendChild(label);
+                    radioInputGroup.appendChild(wrapper);
+                });
+            }
+            inputContainer.classList.remove('hidden');
+        }
+
+        function handleNext() {
+            const question = questions[currentQuestionIndex];
+            let value;
+            let isValid = true;
+            
+            if (question.type === 'number') {
+                value = parseFloat(userInput.value);
+                if (isNaN(value) || value < 0) {
+                    inputError.classList.remove('hidden');
+                    isValid = false;
+                } else {
+                    inputError.classList.add('hidden');
+                }
+            } else if (question.type === 'radio') {
+                const selectedRadio = document.querySelector('input[name="condition"]:checked');
+                if (selectedRadio) {
+                    value = selectedRadio.value;
+                } else {
+                    // Simple alert for now, can be improved with a message
+                    alert('Please select an option.');
+                    isValid = false;
+                }
+            }
+            
+            if (!isValid) return;
+
+            answers[question.id] = value;
+            
+            const answerBubble = document.createElement('div');
+            answerBubble.className = 'chat-bubble bg-blue-600 text-white p-3 rounded-lg rounded-br-none max-w-md ml-auto';
+            answerBubble.textContent = question.prefix ? `${question.prefix}${value}` : value;
+            chatContainer.appendChild(answerBubble);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            currentQuestionIndex++;
+
+            if (currentQuestionIndex < questions.length) {
+                askQuestion();
+            } else {
+                inputContainer.classList.add('hidden');
+                showResults();
+            }
+        }
+
+        function showResults() {
+            qaScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+
+            // Calculations
+            const retailPrice = answers.retailPrice;
+            const taxRate = answers.taxRate / 100;
+            const hammerPrice = answers.hammerPrice;
+            const buyersPremiumRate = answers.buyersPremium / 100;
+            const pickupCost = answers.pickupCost;
+            const condition = answers.condition;
+
+            const retailTax = retailPrice * taxRate;
+            const totalRetailCost = retailPrice + retailTax;
+
+            const premiumAmount = hammerPrice * buyersPremiumRate;
+            const auctionTaxableAmount = hammerPrice + premiumAmount;
+            const auctionTax = auctionTaxableAmount * taxRate;
+            const totalAuctionCost = auctionTaxableAmount + auctionTax + pickupCost;
+
+            const savingsAmount = totalRetailCost - totalAuctionCost;
+            const savingsPercentage = totalRetailCost > 0 ? (savingsAmount / totalRetailCost) * 100 : 0;
+            
+            // Populate Retail Card
+            document.getElementById('resRetailPrice').textContent = formatCurrency(retailPrice);
+            document.getElementById('resRetailTaxRate').textContent = answers.taxRate;
+            document.getElementById('resRetailTax').textContent = formatCurrency(retailTax);
+            document.getElementById('resRetailTotal').textContent = formatCurrency(totalRetailCost);
+
+            // Populate Auction Card
+            document.getElementById('resAuctionHammer').textContent = formatCurrency(hammerPrice);
+            document.getElementById('resAuctionPremiumRate').textContent = answers.buyersPremium;
+            document.getElementById('resAuctionPremium').textContent = formatCurrency(premiumAmount);
+            document.getElementById('resAuctionTaxable').textContent = formatCurrency(auctionTaxableAmount);
+            document.getElementById('resAuctionTaxRate').textContent = answers.taxRate;
+            document.getElementById('resAuctionTax').textContent = formatCurrency(auctionTax);
+            document.getElementById('resAuctionPickup').textContent = formatCurrency(pickupCost);
+            document.getElementById('resAuctionTotal').textContent = formatCurrency(totalAuctionCost);
+
+            // Populate Decision Card
+            const decisionCard = document.getElementById('decisionCard');
+            const decisionTitle = document.getElementById('decisionTitle');
+            const decisionReason = document.getElementById('decisionReason');
+            const threshold = thresholds[condition];
+            
+            if (savingsPercentage > threshold) {
+                decisionCard.className = 'mt-6 p-6 rounded-xl decision-card bg-green-600 shadow-lg';
+                decisionTitle.textContent = "Go for the Auction!";
+                decisionReason.textContent = `You're saving ${savingsPercentage.toFixed(1)}%, which is above the ${threshold}% threshold for a '${condition}' item. Total savings: ${formatCurrency(savingsAmount)}.`;
+            } else {
+                decisionCard.className = 'mt-6 p-6 rounded-xl decision-card bg-red-600 shadow-lg';
+                decisionTitle.textContent = "Stick with Retail.";
+                if (savingsAmount > 0) {
+                     decisionReason.textContent = `Your saving of ${savingsPercentage.toFixed(1)}% doesn't meet the ${threshold}% threshold for a '${condition}' item.`;
+                } else {
+                     decisionReason.textContent = `The auction is more expensive than retail by ${formatCurrency(Math.abs(savingsAmount))}.`;
+                }
+            }
+        }
+
+        function reset() {
+            resultScreen.classList.add('hidden');
+            welcomeScreen.classList.remove('hidden');
+        }
+
+        startButton.addEventListener('click', start);
+        nextButton.addEventListener('click', handleNext);
+        resetButton.addEventListener('click', reset);
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                handleNext();
+            }
+        });
+    </script>
+</body>
+</html>
